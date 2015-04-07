@@ -10,7 +10,7 @@ using namespace std;
 struct mouse_info_struct { int x, y; };
 struct mouse_info_struct mouse_info = { -1, -1 }, last_mouse, lastKalmanMouse;
 
-vector<Point> mousev, kalmanv;
+vector<Point2f> mousev, kalmanv;
 
 void on_mouse(int event, int x, int y, int flags, void* param) {
   //if (event == CV_EVENT_LBUTTONUP)
@@ -81,34 +81,41 @@ int main(int argc, char** argv)
 
         // next measurement: take last known measurement direction and multiply
         // with the predicted acceleration
-        vector<Point>::iterator it2 = mousev.end();
+        vector<Point2f>::iterator it2 = mousev.end();
         std::advance(it2, -1);
-        Point lastMeasurement = *it2;
+        Point2f lastMeasurement = *it2;
         std::advance(it2, -1);
-        Point previousMeasurement = *it2;
+        Point2f previousMeasurement = *it2;
         Point2f directionMeasurementVector = lastMeasurement - previousMeasurement;
-        double length = cv::norm(directionMeasurementVector);
+        float length = static_cast<float>(cv::norm(directionMeasurementVector));
         cout << "directionMeasurementVector.x: " << directionMeasurementVector.x << std::endl;
         cout << "directionMeasurementVector.y: " << directionMeasurementVector.y << std::endl;
 
-        directionMeasurementVector.x = static_cast<float>(directionMeasurementVector.x) / static_cast<float>(length);
-        directionMeasurementVector.y = static_cast<float>(directionMeasurementVector.y) / static_cast<float>(length);
+        if (length != 0)
+        {
+          directionMeasurementVector.x = directionMeasurementVector.x / length;
+          directionMeasurementVector.y = directionMeasurementVector.y / length;
+        }
 
-        vector<Point>::iterator it = kalmanv.end();
-        std::advance(it, -1);
-        Point lastState = *it;
-        std::advance(it, -1);
-        Point previousState = *it;
-        Point2f directionStateVector = lastState - previousState;
-        length = cv::norm(directionStateVector);
-
+        if (length == 0)
+        {
+          cout << "length is ZERO!!!" << std::endl;
+        }
         cout << "directionMeasurementVector.x: " << directionMeasurementVector.x << std::endl;
         cout << "directionMeasurementVector.y: " << directionMeasurementVector.y << std::endl;
         cout << "length: " << length << std::endl;
 
+        vector<Point2f>::iterator it = kalmanv.end();
+        std::advance(it, -1);
+        Point2f lastState = *it;
+        std::advance(it, -1);
+        Point2f previousState = *it;
+        Point2f directionStateVector = lastState - previousState;
+        length = static_cast<float>(cv::norm(directionStateVector));
+
         Point2f newPoint;
-        newPoint.x = lastMeasurement.x + static_cast<float>(length)* static_cast<float>(directionMeasurementVector.x);
-        newPoint.y = lastMeasurement.y + static_cast<float>(length)* static_cast<float>(directionMeasurementVector.y);
+        newPoint.x = lastMeasurement.x + length * directionMeasurementVector.x;
+        newPoint.y = lastMeasurement.y + length * directionMeasurementVector.y;
 
         cout << "newPoint.x: " << newPoint.x << std::endl;
         cout << "newPoint.y: " << newPoint.y << std::endl;
